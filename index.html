@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Agent Inspeksi SLF</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0f2744;--navy2:#1a3a5c;--navy3:#2a527a;
+  --accent:#e8a020;--accent2:#f5c55a;
+  --green:#1a7a4a;--greenBg:#e8f5ee;--greenBd:#9fd4b8;
+  --yellow:#7a5a00;--yellowBg:#fff8e1;
+  --red:#b02020;--redBg:#fdeaea;--redBd:#f5c5c5;
+  --blue:#0c4a8a;--blueBg:#e6f1fb;
+  --bd:#dde3ec;--bg:#f0f3f8;--text:#1a2a3a;--muted:#6b7a8d;--hint:#a0b0c0;
+  --card:#fff;--r:10px;--sh:0 1px 3px rgba(15,39,68,.08);
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+
+/* ── Header ── */
+.hdr{background:var(--navy);color:#fff;padding:0 24px;display:flex;align-items:center;gap:14px;height:58px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.hdr-ico{width:34px;height:34px;background:var(--accent);border-radius:7px;display:grid;place-items:center;flex-shrink:0}
+.hdr h1{font-size:15px;font-weight:700}
+.hdr p{font-size:11px;color:#8ab0d0;margin-top:1px}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot-ok{background:var(--green)}
+.dot-idle{background:var(--hint)}
+.dot-busy{background:var(--accent);animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.ico-btn{background:rgba(255,255,255,.1);border:none;color:#fff;width:32px;height:32px;border-radius:6px;cursor:pointer;display:grid;place-items:center;font-size:15px}
+.ico-btn:hover{background:rgba(255,255,255,.2)}
+
+/* ── Tabs ── */
+.tabs{background:var(--navy2);display:flex;padding:0 24px;gap:2px}
+.tab{padding:10px 15px;font-size:13px;font-weight:500;color:#6a96b8;cursor:pointer;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap}
+.tab.active{color:#fff;border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:#c0d8ec}
+
+/* ── Body ── */
+.body{padding:20px 24px;max-width:960px;margin:0 auto}
+@media(max-width:600px){.body{padding:12px}}
+
+/* ── Card ── */
+.card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:20px;margin-bottom:14px;box-shadow:var(--sh)}
+.ctitle{font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.ctitle::before{content:'';width:3px;height:12px;background:var(--accent);border-radius:2px;flex-shrink:0}
+
+/* ── Form ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:540px){.g2,.g3{grid-template-columns:1fr}}
+.f{margin-bottom:11px}
+label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.45px}
+input,select,textarea{width:100%;padding:8px 11px;border:1px solid var(--bd);border-radius:7px;font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);background:#fff;outline:none;transition:.15s}
+input:focus,select:focus,textarea:focus{border-color:var(--navy3);box-shadow:0 0 0 3px rgba(42,82,122,.1)}
+textarea{resize:vertical;min-height:70px;line-height:1.5}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7a8d'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px}
+
+/* ── Upload ── */
+.up{border:2px dashed var(--bd);border-radius:var(--r);min-height:110px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;transition:.2s;position:relative;background:#fafbfc}
+.up:hover{border-color:var(--navy3);background:#f0f5ff}
+.up.has{border-style:solid;border-color:var(--navy3);padding:0}
+.up input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.up-img{width:100%;max-height:190px;object-fit:cover;border-radius:8px;display:none}
+.up-img.on{display:block}
+.up-hint{pointer-events:none;color:var(--muted)}
+.up-hint svg{margin:0 auto 7px;display:block;opacity:.35}
+.up-hint p{font-size:13px}
+.up-hint small{font-size:11px;color:var(--hint)}
+
+/* ── Buttons ── */
+.btn{padding:8px 17px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;border:1px solid transparent;font-family:'Plus Jakarta Sans',sans-serif;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn:active{transform:scale(.98)}
+.btn-p{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn-p:hover:not(:disabled){background:var(--navy2)}
+.btn-p:disabled{background:#8fa0b0;border-color:#8fa0b0;cursor:not-allowed}
+.btn-a{background:var(--accent);color:var(--navy);border-color:var(--accent)}
+.btn-a:hover{background:var(--accent2)}
+.btn-o{background:#fff;color:var(--text);border-color:var(--bd)}
+.btn-o:hover{background:var(--bg)}
+.btn-g{background:var(--greenBg);color:var(--green);border-color:var(--greenBd)}
+.btn-d{background:var(--redBg);color:var(--red);border-color:var(--redBd)}
+.btn-sm{padding:5px 11px;font-size:12px}
+.brow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* ── Analyze bar ── */
+.abar{background:var(--navy2);border-radius:var(--r);padding:13px 17px;display:none;align-items:center;gap:11px;margin-bottom:14px}
+.abar.on{display:flex}
+.spin{width:17px;height:17px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+.abar p{font-size:13px;color:#fff;font-weight:500}
+
+/* ── Result ── */
+.rbrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;flex-wrap:wrap;gap:8px}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;font-size:13px;margin-bottom:15px}
+.rf{grid-column:1/-1}
+@media(max-width:540px){.rg{grid-template-columns:1fr}}
+.rl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.rv{color:var(--text);line-height:1.55}
+.rv2{color:var(--muted);font-size:12px;line-height:1.5}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.b-ok{background:var(--greenBg);color:var(--green)}
+.b-warn{background:var(--yellowBg);color:var(--yellow)}
+.b-fail{background:var(--redBg);color:var(--red)}
+.b-info{background:var(--blueBg);color:var(--blue)}
+
+/* ── Stats ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:14px}
+@media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:13px 14px;text-align:center}
+.sn{font-size:25px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1.1}
+.sl{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+
+/* ── Table ── */
+.twrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:680px}
+th{background:var(--navy);color:#fff;padding:9px 11px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap}
+td{padding:9px 11px;border-bottom:1px solid var(--bd);vertical-align:top;line-height:1.4}
+tr:hover td{background:#f4f7fb}
+.nb{width:21px;height:21px;background:var(--navy);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;font-family:'IBM Plex Mono',monospace}
+
+/* ── Empty ── */
+.empty{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty p{font-size:14px;font-weight:500;margin-top:10px}
+.empty small{font-size:12px;margin-top:3px;display:block;color:var(--hint)}
+
+/* ── Info boxes ── */
+.ibox{background:var(--blueBg);border:1px solid #b5d4f4;border-radius:8px;padding:11px 13px;font-size:12px;color:var(--blue);line-height:1.7;margin-top:8px}
+.ibox code,.wbox code,.ok-b code{background:rgba(0,0,0,.07);padding:1px 5px;border-radius:3px;font-family:'IBM Plex Mono',monospace;font-size:11px}
+.wbox{background:var(--yellowBg);border:1px solid #f0d080;border-radius:8px;padding:11px 13px;font-size:12px;color:var(--yellow);line-height:1.7;margin-top:8px}
+.ok-b{background:var(--greenBg);border:1px solid var(--greenBd);border-radius:8px;padding:11px 13px;font-size:12px;color:var(--green);line-height:1.7;margin-bottom:12px}
+.sblock{border-left:3px solid var(--bd);padding-left:15px;margin-bottom:20px}
+.sblock h3{font-size:13px;font-weight:700;margin-bottom:9px;color:var(--navy)}
+
+/* ── Steps ── */
+.steps{counter-reset:s;list-style:none;padding:0;margin-top:10px}
+.steps li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;margin-bottom:9px;font-size:13px;line-height:1.6}
+.steps li::before{content:counter(s);min-width:21px;height:21px;background:var(--navy);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:2px;font-family:'IBM Plex Mono',monospace}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--navy);color:#fff;padding:11px 17px;border-radius:9px;font-size:13px;font-weight:500;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:999;transform:translateY(70px);opacity:0;transition:.28s;max-width:310px}
+.toast.on{transform:translateY(0);opacity:1}
+.toast.green{background:var(--green)}
+.toast.red{background:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-ico">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke="#0f2744" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div><h1>AI Agent Inspeksi SLF</h1><p>Otomatisasi temuan kerusakan bangunan gedung</p></div>
+  <div class="hdr-r">
+    <span id="syncDot" class="dot dot-idle" title="Status Google Sheets"></span>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="sw('input',this)">Input Temuan</div>
+  <div class="tab" onclick="sw('table',this)">Tabel Temuan</div>
+  <div class="tab" onclick="sw('projects',this)">Proyek</div>
+  <div class="tab" onclick="sw('settings',this)">Pengaturan</div>
+</div>
+
+<div class="body">
+
+<!-- ═══════════════ TAB INPUT ═══════════════ -->
+<div id="t-input">
+  <div class="card">
+    <div class="ctitle">Info Inspeksi</div>
+    <div class="g3">
+      <div class="f"><label>Proyek Aktif</label><select id="selProyek" onchange="setProj(this.value)"></select></div>
+      <div class="f"><label>Tanggal</label><input type="date" id="tgl"/></div>
+      <div class="f"><label>Konsultan / Penilai</label><input id="konsultan" placeholder="Nama konsultan"/></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Tambah Temuan Baru</div>
+    <div class="g2" style="margin-bottom:11px">
+      <div class="f"><label>Lokasi / Ruangan</label><input id="lokasi" placeholder="Contoh: Ruang Dokter Lt.2, Koridor Barat"/></div>
+      <div class="f"><label>Kategori Kerusakan</label>
+        <select id="kat">
+          <option value="">-- Pilih kategori --</option>
+          <optgroup label="Arsitektur / Finishing">
+            <option>Kondisi Dinding</option><option>Kondisi Plafon</option><option>Kondisi Lantai</option>
+            <option>Kondisi Pintu & Kusen</option><option>Kondisi Jendela</option>
+            <option>Kebersihan & Sanitasi</option><option>Fasad / Eksterior</option>
+          </optgroup>
+          <optgroup label="Struktural">
+            <option>Kondisi Kolom</option><option>Kondisi Balok</option><option>Kondisi Pelat Lantai</option>
+            <option>Kondisi Dinding Struktural</option><option>Kondisi Pondasi (visible)</option>
+          </optgroup>
+          <optgroup label="MEP">
+            <option>Instalasi Listrik</option><option>Instalasi Plumbing / Air</option>
+            <option>Sistem AC & Ventilasi</option><option>Proteksi Kebakaran</option>
+            <option>Sanitasi / Drainase</option><option>Lift & Eskalator</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+    <div class="f"><label>Catatan Lapangan (opsional)</label>
+      <textarea id="catatan" placeholder="Catatan singkat dari lapangan. Bisa dikosongkan — AI akan analisis dari foto."></textarea>
+    </div>
+    <div class="f"><label>Foto Kerusakan</label>
+      <div class="up" id="upArea">
+        <input type="file" accept="image/*" id="fotoInput" onchange="prevFoto(this)"/>
+        <img id="prevImg" class="up-img"/>
+        <div class="up-hint" id="upHint">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#6b7a8d" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" fill="#6b7a8d"/><path d="M21 15l-5-5L5 21" stroke="#6b7a8d" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <p>Klik atau seret foto ke sini</p><small>JPG / PNG / HEIC — maks 15MB</small>
+        </div>
+      </div>
+    </div>
+    <div class="brow">
+      <button class="btn btn-p" id="aBtn" onclick="doAnalyze()">Analisis dengan AI</button>
+      <button class="btn btn-o" onclick="clearForm()">Bersihkan</button>
+    </div>
+  </div>
+
+  <div class="abar" id="abar"><div class="spin"></div><p id="aMsg">AI sedang menganalisis...</p></div>
+  <div id="resultArea"></div>
+</div>
+
+<!-- ═══════════════ TAB TABLE ═══════════════ -->
+<div id="t-table" style="display:none">
+  <div class="stats">
+    <div class="stat"><div class="sn" id="sTotal" style="color:var(--navy)">0</div><div class="sl">Total Temuan</div></div>
+    <div class="stat"><div class="sn" id="sFail"  style="color:var(--red)">0</div><div class="sl">Tidak Sesuai</div></div>
+    <div class="stat"><div class="sn" id="sWarn"  style="color:var(--yellow)">0</div><div class="sl">Dgn Catatan</div></div>
+    <div class="stat"><div class="sn" id="sOk"    style="color:var(--green)">0</div><div class="sl">Sesuai</div></div>
+  </div>
+  <div class="brow" style="margin-bottom:13px">
+    <button class="btn btn-a" onclick="doExcel()">Export Excel (.xlsx)</button>
+    <button class="btn btn-g" id="syncBtn" onclick="doSync()">Sync ke Google Sheets</button>
+    <button class="btn btn-o btn-sm" style="margin-left:auto" onclick="if(confirm('Hapus semua temuan proyek ini?'))clearAll()">Hapus Semua</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden"><div id="tBody"></div></div>
+</div>
+
+<!-- ═══════════════ TAB PROJECTS ═══════════════ -->
+<div id="t-projects" style="display:none">
+  <div class="card">
+    <div class="ctitle">Daftar Proyek</div>
+    <div id="projList"></div>
+    <div style="margin-top:15px;padding-top:15px;border-top:1px solid var(--bd)">
+      <p style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Tambah Proyek Baru</p>
+      <div class="g2">
+        <div class="f"><label>Nama Gedung / Proyek</label><input id="npName" placeholder="Nama proyek"/></div>
+        <div class="f"><label>Jenis Kajian</label>
+          <select id="npType">
+            <option>Sertifikat Laik Fungsi (SLF)</option>
+            <option>Inspeksi Berkala</option>
+            <option>Kajian Teknis Khusus</option>
+          </select>
+        </div>
+        <div class="f"><label>Alamat</label><input id="npAddr" placeholder="Jl. Contoh No.1, Kota"/></div>
+        <div class="f"><label>Pemilik Gedung</label><input id="npOwner" placeholder="PT / Nama pemilik"/></div>
+      </div>
+      <button class="btn btn-p" onclick="addProj()">Tambah Proyek</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TAB SETTINGS ═══════════════ -->
+<div id="t-settings" style="display:none">
+  <div class="card">
+    <div class="ctitle">Pengaturan</div>
+
+    <div class="sblock">
+      <h3>Google Sheets — Apps Script URL</h3>
+      <div class="f"><label>Web App URL</label>
+        <input id="sheetsUrl" placeholder="https://script.google.com/macros/s/..." oninput="saveSettings()"/>
+      </div>
+      <div class="ibox">
+        Isi setelah setup <code>google-apps-script.js</code> di Google Sheets.<br>
+        Panduan lengkap ada di tab <strong>Cara Deploy</strong> di bawah ini.
+      </div>
+    </div>
+
+    <div class="sblock" style="margin-top:18px">
+      <h3>Info Perusahaan (untuk header laporan Excel)</h3>
+      <div class="g2">
+        <div class="f"><label>Nama Perusahaan</label><input id="cName" placeholder="PT Konsultan Bangunan" oninput="saveSettings()"/></div>
+        <div class="f"><label>No. Lisensi / SKA</label><input id="cLic" oninput="saveSettings()"/></div>
+      </div>
+      <div class="f"><label>Alamat Perusahaan</label><input id="cAddr" oninput="saveSettings()"/></div>
+    </div>
+
+    <button class="btn btn-p" onclick="saveSettings();toast('Pengaturan tersimpan','green')">Simpan Pengaturan</button>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Cara Deploy ke Vercel (Langkah Lengkap)</div>
+    <div class="ok-b">
+      API key Gemini <strong>tidak perlu diisi di sini</strong> — disimpan aman di server Vercel sebagai environment variable, tidak terekspos ke browser.
+    </div>
+
+    <p style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">A. Siapkan File</p>
+    <ol class="steps" style="margin-bottom:18px">
+      <li>Download semua file yang sudah diberikan. Pastikan struktur foldernya benar:<br>
+        <code>inspeksi-slf/</code><br>
+        <code>&nbsp;&nbsp;├── index.html</code><br>
+        <code>&nbsp;&nbsp;├── vercel.json</code><br>
+        <code>&nbsp;&nbsp;├── google-apps-script.js</code><br>
+        <code>&nbsp;&nbsp;└── api/</code><br>
+        <code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── analyze.js</code>
+      </li>
+    </ol>
+
+    <p style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">B. Buat Akun & Deploy ke Vercel</p>
+    <ol class="steps" style="margin-bottom:18px">
+      <li>Buka <strong>vercel.com</strong> → klik <strong>Sign Up</strong> → pilih <strong>Continue with GitHub</strong> (buat akun GitHub dulu jika belum ada, gratis)</li>
+      <li>Setelah login Vercel, klik <strong>Add New… → Project</strong></li>
+      <li>Di halaman Import, cari tombol <strong>"upload"</strong> atau <strong>"Browse"</strong> di bagian bawah halaman → upload <strong>seluruh folder</strong> <code>inspeksi-slf</code></li>
+      <li>Vercel akan mendeteksi project. Sebelum klik Deploy, buka bagian <strong>Environment Variables</strong> (bisa scroll ke bawah di halaman konfigurasi)</li>
+      <li>Tambah environment variable:<br>
+        <strong>Name:</strong> <code>GEMINI_API_KEY</code><br>
+        <strong>Value:</strong> <code>AIzaxxxxx</code> (dari aistudio.google.com)<br>
+        Klik <strong>Add</strong>
+      </li>
+      <li>Klik <strong>Deploy</strong> — tunggu 30–60 detik</li>
+      <li>Vercel memberikan URL seperti <code>inspeksi-slf.vercel.app</code> — ini URL aplikasi Anda, bagikan ke seluruh tim</li>
+    </ol>
+
+    <p style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">C. Dapatkan API Key Gemini (Gratis)</p>
+    <ol class="steps" style="margin-bottom:18px">
+      <li>Buka <strong>aistudio.google.com</strong> &rarr; login dengan akun Google</li>
+      <li>Klik <strong>Get API Key</strong> &rarr; <strong>Create API key</strong></li>
+      <li>Pilih project Google yang ada atau buat baru &rarr; klik <strong>Create API key in existing project</strong></li>
+      <li>Copy key yang muncul (dimulai dengan <code>AIza...</code>) &mdash; simpan di notepad dulu</li>
+      <li>Di Vercel (langkah B.4), isi:<br><strong>Name:</strong> <code>GEMINI_API_KEY</code> &nbsp; <strong>Value:</strong> paste key &rarr; klik <strong>Add</strong></li>
+    </ol>
+
+    <p style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">D. Setup Google Sheets (Opsional)</p>
+    <ol class="steps">
+      <li>Buka Google Sheets baru di <strong>sheets.new</strong></li>
+      <li>Klik menu <strong>Extensions → Apps Script</strong></li>
+      <li>Hapus semua kode yang ada → paste seluruh isi file <code>google-apps-script.js</code></li>
+      <li>Klik <strong>Deploy → New Deployment</strong></li>
+      <li>Type: <strong>Web app</strong> | Execute as: <strong>Me</strong> | Access: <strong>Anyone</strong> → klik <strong>Deploy</strong></li>
+      <li>Klik <strong>Authorize access</strong> → pilih akun Google → Allow</li>
+      <li>Copy URL yang muncul → paste ke tab <strong>Pengaturan</strong> aplikasi ini → Simpan</li>
+    </ol>
+
+    <div class="wbox" style="margin-top:14px">
+      Jika ingin mengganti API key di kemudian hari: buka <strong>Vercel Dashboard → Project → Settings → Environment Variables</strong> → edit nilai <code>GEMINI_API_KEY</code> → Redeploy.
+    </div>
+  </div>
+</div>
+
+</div><!-- /body -->
+<div class="toast" id="toastEl"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────
+let findings=[], projects=[], activePid=null, curResult=null, foto64=null;
+
+// ── Init ───────────────────────────────────────────────
+(function init(){
+  findings = JSON.parse(localStorage.getItem('findings')||'[]');
+  projects = JSON.parse(localStorage.getItem('projects')||'null') ||
+    [{id:'p1',name:'RS Pradipa Medika',type:'Sertifikat Laik Fungsi (SLF)',addr:'',owner:''}];
+  activePid = localStorage.getItem('activePid') || projects[0]?.id;
+  document.getElementById('tgl').value = new Date().toISOString().split('T')[0];
+  document.getElementById('sheetsUrl').value = ls('sheetsUrl');
+  document.getElementById('cName').value  = ls('cName');
+  document.getElementById('cLic').value   = ls('cLic');
+  document.getElementById('cAddr').value  = ls('cAddr');
+  document.getElementById('konsultan').value = ls('konsultan');
+  renderProjSel(); renderStats(); updDot();
+})();
+
+function ls(k,v){ if(v!==undefined){localStorage.setItem(k,v);return v;} return localStorage.getItem(k)||''; }
+function saveFindings(){ localStorage.setItem('findings', JSON.stringify(findings)); }
+function saveProjects(){ localStorage.setItem('projects', JSON.stringify(projects)); }
+
+function saveSettings(){
+  ls('sheetsUrl', document.getElementById('sheetsUrl').value);
+  ls('cName',     document.getElementById('cName').value);
+  ls('cLic',      document.getElementById('cLic').value);
+  ls('cAddr',     document.getElementById('cAddr').value);
+  updDot();
+}
+function updDot(){
+  const ok = ls('sheetsUrl').length > 20;
+  document.getElementById('syncDot').className = 'dot ' + (ok?'dot-ok':'dot-idle');
+}
+
+// ── Tabs ───────────────────────────────────────────────
+function sw(name, el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['input','table','projects','settings'].forEach(n=>
+    document.getElementById('t-'+n).style.display = n===name?'':'none'
+  );
+  if(name==='table')    renderTable();
+  if(name==='projects') renderProjList();
+}
+
+// ── Projects ───────────────────────────────────────────
+function renderProjSel(){
+  document.getElementById('selProyek').innerHTML = projects.map(p=>
+    `<option value="${p.id}" ${p.id===activePid?'selected':''}>${p.name}</option>`
+  ).join('');
+}
+function setProj(id){ activePid=id; ls('activePid',id); renderStats(); }
+
+function renderProjList(){
+  const el = document.getElementById('projList');
+  if(!projects.length){ el.innerHTML='<p style="color:var(--muted);font-size:13px">Belum ada proyek.</p>'; return; }
+  el.innerHTML = projects.map(p=>{
+    const n = findings.filter(f=>f.pid===p.id).length;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--bd)">
+      <div style="flex:1"><div style="font-weight:600;font-size:13px">${p.name}</div>
+      <div style="font-size:12px;color:var(--muted)">${p.type}${p.addr?' · '+p.addr:''}</div></div>
+      <span class="badge b-info" style="font-size:11px">${n} temuan</span>
+      ${projects.length>1?`<button class="btn btn-d btn-sm" onclick="delProj('${p.id}')">Hapus</button>`:''}
+    </div>`;
+  }).join('');
+}
+function addProj(){
+  const name=document.getElementById('npName').value.trim();
+  if(!name){toast('Isi nama proyek','red');return;}
+  const p={id:'p'+Date.now(), name, type:document.getElementById('npType').value,
+    addr:document.getElementById('npAddr').value, owner:document.getElementById('npOwner').value};
+  projects.push(p); saveProjects();
+  ['npName','npAddr','npOwner'].forEach(id=>document.getElementById(id).value='');
+  renderProjSel(); renderProjList(); toast('Proyek ditambahkan','green');
+}
+function delProj(id){
+  if(!confirm('Hapus proyek ini?')) return;
+  projects=projects.filter(p=>p.id!==id); saveProjects();
+  renderProjSel(); renderProjList();
+}
+
+// ── Photo ──────────────────────────────────────────────
+function prevFoto(input){
+  const f=input.files[0]; if(!f) return;
+  new FileReader().onload=e=>{
+    foto64=e.target.result;
+    const img=document.getElementById('prevImg');
+    img.src=foto64; img.classList.add('on');
+    document.getElementById('upHint').style.display='none';
+    document.getElementById('upArea').classList.add('has');
+  }, (new FileReader()).readAsDataURL(f)||void(()=>{
+    const r=new FileReader();
+    r.onload=e=>{ foto64=e.target.result;
+      document.getElementById('prevImg').src=foto64;
+      document.getElementById('prevImg').classList.add('on');
+      document.getElementById('upHint').style.display='none';
+      document.getElementById('upArea').classList.add('has'); };
+    r.readAsDataURL(f);
+  })();
+}
+// fix: simpler photo handler
+document.getElementById('fotoInput').onchange=function(){
+  const f=this.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    foto64=e.target.result;
+    document.getElementById('prevImg').src=foto64;
+    document.getElementById('prevImg').classList.add('on');
+    document.getElementById('upHint').style.display='none';
+    document.getElementById('upArea').classList.add('has');
+  };
+  r.readAsDataURL(f);
+};
+
+// ── Analyze ────────────────────────────────────────────
+async function doAnalyze(){
+  const lokasi=document.getElementById('lokasi').value.trim();
+  const kat=document.getElementById('kat').value;
+  const catatan=document.getElementById('catatan').value.trim();
+  if(!lokasi){toast('Isi lokasi/ruangan','red');return;}
+  if(!kat){toast('Pilih kategori kerusakan','red');return;}
+  if(!foto64&&!catatan){toast('Upload foto atau isi catatan lapangan','red');return;}
+
+  const proj=projects.find(p=>p.id===activePid)||projects[0];
+  const tgl=document.getElementById('tgl').value;
+  const kons=document.getElementById('konsultan').value;
+
+  document.getElementById('abar').classList.add('on');
+  document.getElementById('aBtn').disabled=true;
+  document.getElementById('resultArea').innerHTML='';
+
+  const sys=`Kamu adalah ahli inspeksi bangunan gedung untuk kajian ${proj.type} di Indonesia.
+Kembalikan HANYA JSON murni tanpa markdown. Struktur:
+{
+  "uraian": "Deskripsi teknis. Format bullet: • poin1\\n• poin2\\n• poin3 (min 3 poin)",
+  "regulasi": "2-3 regulasi relevan. Format: [Regulasi] — [Pasal spesifik]",
+  "status": "SESUAI" atau "SESUAI DENGAN CATATAN" atau "TIDAK SESUAI",
+  "status_sym": "✔ SESUAI" atau "⚠ SESUAI DENGAN CATATAN" atau "✘ TIDAK SESUAI",
+  "rekomendasi": "Langkah perbaikan bullet: • langkah1\\n• langkah2 (min 3 poin)",
+  "keterangan": "Ringkasan 1-2 kalimat.",
+  "urgensi": "SEGERA" atau "JANGKA MENENGAH" atau "BERKALA"
+}
+Regulasi: Arsitektur→PP 16/2021,Permen PUPR 3/2020; Struktural→SNI 2847-2019,SNI 1726-2019;
+Listrik→SNI 0225-2020; Plumbing→SNI 8153-2015; Kebakaran→Permen PU 26/2008; RS→Permenkes 40/2022`;
+
+  const uc=[];
+  if(foto64){
+    const mime=(foto64.match(/^data:(image\/[a-z]+);/)||[])[1]||'image/jpeg';
+    uc.push({type:'image',source:{type:'base64',media_type:mime,data:foto64.split(',')[1]}});
+  }
+  uc.push({type:'text',text:`Proyek: ${proj.name} (${proj.type})\nLokasi: ${lokasi}\nKategori: ${kat}\nTanggal: ${tgl}\nKonsultan: ${kons}\nCatatan: ${catatan||'(lihat foto)'}`});
+
+  try{
+    const res=await fetch('/api/analyze',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:[{role:'user',content:uc}]})
+    });
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'Server error');
+    const raw=(data.content?.find(b=>b.type==='text')?.text||'{}').replace(/```json|```/g,'').trim();
+    const r=JSON.parse(raw);
+    curResult={lokasi,kat,foto64,pid:activePid,tgl,kons,...r};
+    showResult(curResult);
+  }catch(e){
+    document.getElementById('resultArea').innerHTML=`<div class="card" style="border-color:var(--redBd);background:var(--redBg)">
+      <p style="color:var(--red);font-weight:600;font-size:13px">Gagal menganalisis</p>
+      <p style="color:var(--red);font-size:12px;margin-top:5px">${e.message}</p>
+      <p style="color:var(--muted);font-size:12px;margin-top:8px;line-height:1.6">
+        Pastikan:<br>
+        1. Aplikasi sudah di-deploy ke Vercel<br>
+        2. <code>GEMINI_API_KEY</code> sudah diset di Vercel → Settings → Environment Variables<br>
+        3. API key valid (aistudio.google.com)
+      </p>
+    </div>`;
+  }
+  document.getElementById('abar').classList.remove('on');
+  document.getElementById('aBtn').disabled=false;
+}
+
+function fmt(s){ return (s||'').replace(/\\n•/g,'<br>•').replace(/\n•/g,'<br>•'); }
+
+function showResult(r){
+  const bc=r.status==='SESUAI'?'b-ok':r.status==='TIDAK SESUAI'?'b-fail':'b-warn';
+  const uc=r.urgensi==='SEGERA'?'var(--red)':r.urgensi==='JANGKA MENENGAH'?'var(--yellow)':'var(--green)';
+  document.getElementById('resultArea').innerHTML=`
+  <div class="card" style="border-color:var(--navy3)">
+    <div class="rbrow">
+      <span style="font-size:14px;font-weight:700;color:var(--navy)">${r.lokasi} — ${r.kat}</span>
+      <span class="badge ${bc}">${r.status_sym}</span>
+    </div>
+    <div class="rg">
+      <div><div class="rl">Urgensi</div><div class="rv" style="font-weight:700;color:${uc}">${r.urgensi}</div></div>
+      <div><div class="rl">Tanggal</div><div class="rv">${r.tgl||'-'}</div></div>
+      <div class="rf"><div class="rl">Uraian Temuan</div><div class="rv">${fmt(r.uraian)}</div></div>
+      <div class="rf"><div class="rl">Rekomendasi Perbaikan</div><div class="rv">${fmt(r.rekomendasi)}</div></div>
+      <div class="rf"><div class="rl">Persyaratan Teknis / Regulasi</div><div class="rv rv2">${r.regulasi||'-'}</div></div>
+      <div class="rf"><div class="rl">Keterangan</div><div class="rv">${r.keterangan||'-'}</div></div>
+    </div>
+    <div class="brow" style="padding-top:13px;border-top:1px solid var(--bd)">
+      <button class="btn btn-p" onclick="saveFinding()">Simpan ke Tabel</button>
+      <button class="btn btn-o" onclick="document.getElementById('resultArea').innerHTML=''">Batal</button>
+    </div>
+  </div>`;
+}
+
+function saveFinding(){
+  if(!curResult) return;
+  const no=findings.filter(f=>f.pid===activePid).length+1;
+  findings.push({...curResult,no,id:Date.now()});
+  saveFindings(); curResult=null; clearForm(); renderStats();
+  toast('Temuan disimpan! Total proyek: '+findings.filter(f=>f.pid===activePid).length,'green');
+  setTimeout(()=>{ document.getElementById('resultArea').innerHTML=''; },300);
+}
+
+function clearForm(){
+  ['lokasi','catatan'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('kat').value='';
+  document.getElementById('fotoInput').value='';
+  document.getElementById('prevImg').classList.remove('on');
+  document.getElementById('upHint').style.display='';
+  document.getElementById('upArea').classList.remove('has');
+  foto64=null;
+}
+
+// ── Table ──────────────────────────────────────────────
+function renderStats(){
+  const pf=findings.filter(f=>f.pid===activePid);
+  document.getElementById('sTotal').textContent=pf.length;
+  document.getElementById('sFail').textContent=pf.filter(f=>f.status==='TIDAK SESUAI').length;
+  document.getElementById('sWarn').textContent=pf.filter(f=>f.status==='SESUAI DENGAN CATATAN').length;
+  document.getElementById('sOk').textContent=pf.filter(f=>f.status==='SESUAI').length;
+}
+
+function renderTable(){
+  renderStats();
+  const pf=findings.filter(f=>f.pid===activePid);
+  if(!pf.length){
+    document.getElementById('tBody').innerHTML=`<div class="empty">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#a0b0c0" stroke-width="1.5"/><path d="M7 8h10M7 12h7M7 16h4" stroke="#a0b0c0" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <p>Belum ada temuan</p><small>Tambahkan dari tab Input Temuan</small></div>`;
+    return;
+  }
+  const rows=pf.map(f=>{
+    const bc=f.status==='SESUAI'?'b-ok':f.status==='TIDAK SESUAI'?'b-fail':'b-warn';
+    return `<tr>
+      <td><div class="nb">${f.no}</div></td>
+      <td style="font-weight:600">${f.lokasi}</td>
+      <td>${f.kat}</td>
+      <td style="max-width:170px;font-size:12px">${fmt(f.uraian).substring(0,160)}...</td>
+      <td><span class="badge ${bc}" style="font-size:11px;white-space:nowrap">${f.status_sym}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${f.urgensi||'-'}</td>
+      <td><button class="btn btn-d btn-sm" onclick="delRow(${f.id})">×</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tBody').innerHTML=`<div class="twrap"><table>
+    <thead><tr><th>No.</th><th>Lokasi</th><th>Aspek</th><th>Uraian Temuan</th><th>Kesesuaian</th><th>Urgensi</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+
+function delRow(id){
+  findings=findings.filter(f=>f.id!==id);
+  findings.filter(f=>f.pid===activePid).forEach((f,i)=>f.no=i+1);
+  saveFindings(); renderTable();
+}
+
+function clearAll(){
+  findings=findings.filter(f=>f.pid!==activePid);
+  saveFindings(); renderTable();
+}
+
+// ── Export Excel ───────────────────────────────────────
+function doExcel(){
+  const pf=findings.filter(f=>f.pid===activePid);
+  if(!pf.length){toast('Belum ada temuan','red');return;}
+  const proj=projects.find(p=>p.id===activePid)||{name:'Proyek',type:'SLF'};
+  const tgl=document.getElementById('tgl').value;
+  const kons=document.getElementById('konsultan').value||'-';
+  const comp=ls('cName');
+
+  const wb=XLSX.utils.book_new();
+  const hdr=[
+    [`KAJIAN ${proj.type.toUpperCase()} — ${proj.name.toUpperCase()}`,'','','','','','','',''],
+    ['TABEL TEMUAN PEMERIKSAAN BANGUNAN GEDUNG','','','','','','','',''],
+    [`Tanggal: ${tgl}  |  Konsultan: ${kons}  |  Perusahaan: ${comp}`,'','','','','','','',''],
+    ['✔ SESUAI  |  ⚠ SESUAI DENGAN CATATAN  |  ✘ TIDAK SESUAI','','','','','','','',''],
+    [],
+    ['No.','Lokasi / Ruangan','Aspek Pemeriksaan','Uraian Temuan','Persyaratan Teknis','Kesesuaian','Rekomendasi Perbaikan','Dokumentasi','Keterangan / Urgensi']
+  ];
+  const rows=pf.map(f=>[
+    f.no, f.lokasi||'', f.kat||'',
+    (f.uraian||'').replace(/\\n•/g,'\n•'),
+    f.regulasi||'', f.status_sym||'',
+    (f.rekomendasi||'').replace(/\\n•/g,'\n•'),
+    f.foto64?'[Lihat Arsip Foto]':'-',
+    `${f.keterangan||''} — Urgensi: ${f.urgensi||'-'}`
+  ]);
+  const ok=pf.filter(f=>f.status==='SESUAI').length;
+  const ct=pf.filter(f=>f.status==='SESUAI DENGAN CATATAN').length;
+  const no=pf.filter(f=>f.status==='TIDAK SESUAI').length;
+  const sum=[
+    [],
+    ['RINGKASAN','','','','Sesuai ✔','Dgn Catatan ⚠','Tidak Sesuai ✘','Total',''],
+    ['','','','',ok,ct,no,pf.length,''],
+    [`Dokumen dibuat: ${new Date().toLocaleDateString('id-ID')}  |  ${proj.name}`]
+  ];
+  const ws=XLSX.utils.aoa_to_sheet([...hdr,...rows,...sum]);
+  ws['!cols']=[{wch:5},{wch:22},{wch:22},{wch:50},{wch:55},{wch:24},{wch:50},{wch:18},{wch:35}];
+  XLSX.utils.book_append_sheet(wb,ws,'Temuan');
+  XLSX.writeFile(wb,`Temuan_${proj.name.replace(/\s+/g,'_')}_${tgl}.xlsx`);
+  toast('File Excel berhasil didownload','green');
+}
+
+// ── Google Sheets Sync ─────────────────────────────────
+async function doSync(){
+  const url=ls('sheetsUrl');
+  if(url.length<20){toast('Atur Google Sheets URL di Pengaturan','red');return;}
+  const pf=findings.filter(f=>f.pid===activePid);
+  if(!pf.length){toast('Belum ada temuan','red');return;}
+  const proj=projects.find(p=>p.id===activePid)||{name:'-',type:'-'};
+  document.getElementById('syncDot').className='dot dot-busy';
+  document.getElementById('syncBtn').disabled=true;
+  toast('Mengirim ke Google Sheets...');
+  try{
+    await fetch(url,{
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        project:proj.name, type:proj.type,
+        tanggal:document.getElementById('tgl').value,
+        konsultan:document.getElementById('konsultan').value||'-',
+        findings:pf.map(f=>({
+          no:f.no, lokasi:f.lokasi, aspek:f.kat,
+          uraian:(f.uraian||'').replace(/\\n/g,'\n'),
+          persyaratan:f.regulasi,
+          kesesuaian:f.status_sym,
+          rekomendasi:(f.rekomendasi||'').replace(/\\n/g,'\n'),
+          keterangan:f.keterangan, urgensi:f.urgensi
+        }))
+      })
+    });
+    toast('Berhasil dikirim ke Google Sheets!','green');
+    document.getElementById('syncDot').className='dot dot-ok';
+  }catch(e){
+    toast('Gagal sync: '+e.message,'red');
+    document.getElementById('syncDot').className='dot dot-idle';
+  }
+  document.getElementById('syncBtn').disabled=false;
+}
+
+// ── Toast ──────────────────────────────────────────────
+let tt;
+function toast(msg,type=''){
+  const el=document.getElementById('toastEl');
+  el.textContent=msg; el.className='toast on'+(type?' '+type:'');
+  clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),3200);
+}
+</script>
+</body>
+</html>
